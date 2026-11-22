@@ -1,0 +1,5 @@
+{
+  "name": "PDF → Markdown · Local Parser",
+  "description": "Local client-side PDF to Markdown and DOCX parser with spatial column and table extraction.",
+  "requestFramePermissions": []
+}

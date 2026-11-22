@@ -1,0 +1,17 @@
+{
+  "name": "pdf-to-book",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local client-side PDF to Markdown and DOCX parser with spatial column and table extraction.",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node --check server.js",
+    "lint": "node --check server.js",
+    "test": "node --test server.test.mjs"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}
