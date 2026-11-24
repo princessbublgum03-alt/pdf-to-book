@@ -37,6 +37,8 @@ Extracting clean, readable text from PDFs is difficult because PDFs store positi
 - **Batch PDF support** — drag and drop or select multiple PDF files at once, with real-time progress tracking and session statistics (documents, pages, processing time, and detected tables).
 - **Automatic page and document classification** — identifies documents and individual pages as *Text*, *Table*, *Scan*, or *Mixed*.
 - **Built-in OCR for scanned pages** — recognizes image-only pages in the browser using Tesseract.js 7 and fast language data. Russian and English are supported, with a language selector and an on/off switch.
+- **Low-memory mobile processing** — keeps only sampled text content in memory, processes one page at a time, limits OCR raster dimensions on phones, and releases temporary canvases after recognition.
+- **Adaptive experience** — skips OCR engine loading for text-based PDFs, uses a smaller OCR pixel budget on mobile/low-memory devices, and respects reduced-motion preferences.
 - **Multi-column reading order (XY-Cut)** — groups glyph coordinates into lines and segments columns spatially to preserve natural reading flow.
 - **Table extraction** — recognizes both borderless tables (via horizontal whitespace gaps) and ruled tables (via PDF vector paths) and formats them as clean Markdown tables.
 
