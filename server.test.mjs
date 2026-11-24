@@ -20,7 +20,7 @@ test('GET / serves index.html with 200 status and app title', async () => {
     assert.equal(res.status, 200);
     assert.match(res.headers.get('content-type') || '', /text\/html/);
     const html = await res.text();
-    assert.match(html, /PDF → Markdown · Local Parser/);
+    assert.match(html, /PDF to Book · Lightweight PDF Studio/);
   } finally {
     server.close();
   }
