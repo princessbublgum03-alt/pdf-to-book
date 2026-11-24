@@ -580,8 +580,7 @@ async function analyzeFile(file,onProgress=()=>{}){
   const start=performance.now();
   const ocrEnabled=$("#ocrEnabled")?.checked!==false;
   const ocrLanguage=$("#ocrLanguage")?.value||"rus+eng";
-  let ocrWorker=null;
-  if(ocrEnabled){onProgress(2,"Подготовка OCR-движка…");await yieldToUI();const Tesseract=await import("https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.esm.min.js");ocrWorker=await Tesseract.createWorker(ocrLanguage,1,{langPath:"https://tessdata.projectnaptha.com/4.0.0_fast"});}onProgress(1,`Чтение ${file.name}`);await yieldToUI();const data=new Uint8Array(await file.arrayBuffer());
+  let ocrWorker=null;onProgress(1,`Чтение ${file.name}`);await yieldToUI();const data=new Uint8Array(await file.arrayBuffer());
   const loading=pdfjsLib.getDocument({data,disableAutoFetch:true,disableStream:true});
   const pdf=await loading.promise,total=pdf.numPages,sample=chooseSample(total,8),sampleResults=[],sampleCache=new Map();
   for(let si=0;si<sample.length;si++){
@@ -599,7 +598,7 @@ async function analyzeFile(file,onProgress=()=>{}){
     const [content,ops]=cached?[cached.content,cached.ops]:await Promise.all([page.getTextContent({includeMarkedContent:true}),page.getOperatorList()]);
     sampleCache.delete(n);
     let ocrText="";
-    if(ocrWorker&&!content.items.some(i=>i.str&&i.str.trim())){onProgress(10+Math.round(((n-1)/total)*88),`OCR · страница ${n} из ${total}`);const ov=page.getViewport({scale:1.5}),canvas=document.createElement("canvas");canvas.width=Math.ceil(ov.width);canvas.height=Math.ceil(ov.height);const ctx=canvas.getContext("2d",{willReadFrequently:true});await page.render({canvasContext:ctx,viewport:ov}).promise;const result=await ocrWorker.recognize(canvas);ocrText=(result.data.text||"").trim();canvas.width=canvas.height=0;}
+    if(ocrEnabled&&!content.items.some(i=>i.str&&i.str.trim())){if(!ocrWorker){onProgress(10+Math.round(((n-1)/total)*88),"Подготовка OCR-движка…");await yieldToUI();const Tesseract=await import("https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.esm.min.js");ocrWorker=await Tesseract.createWorker(ocrLanguage,1,{langPath:"https://tessdata.projectnaptha.com/4.0.0_fast"});}onProgress(10+Math.round(((n-1)/total)*88),`OCR · страница ${n} из ${total}`);const ov=page.getViewport({scale:1.5}),canvas=document.createElement("canvas");canvas.width=Math.ceil(ov.width);canvas.height=Math.ceil(ov.height);const ctx=canvas.getContext("2d",{willReadFrequently:true});await page.render({canvasContext:ctx,viewport:ov}).promise;const result=await ocrWorker.recognize(canvas);ocrText=(result.data.text||"").trim();canvas.width=canvas.height=0;}
     const items=textItemsToGeometry(content,viewport),lines=groupLines(items),tableRuns=detectBorderlessRuns(lines);
     const ruled=findRuledTables(ops,viewport);
     let kind=classifyPage(page,content,ops,viewport,lines,tableRuns.length?tableRuns:ruled);
