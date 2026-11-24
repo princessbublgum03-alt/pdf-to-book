@@ -128,7 +128,11 @@ h1{font-size:clamp(27px,4vw,42px);line-height:1.08;letter-spacing:-.055em;margin
 .hidden{display:none!important}
 @media(max-width:850px){.app{padding:20px 18px 38px}.workspace{grid-template-columns:1fr}.file-list{max-height:340px}.result-panel{min-height:400px}.preview-area{min-height:400px}.hero{grid-template-columns:1fr}.hero-meta{text-align:left}.stats{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.app{padding:15px 12px 28px}.topbar{margin-bottom:25px}.local-pill{display:none}h1{font-size:29px}.dropzone{min-height:170px;padding:20px 12px}.drop-actions{flex-direction:column}.drop-actions .btn{width:100%}.stats{gap:7px}.stat{padding:11px}.stat-value{font-size:18px}.result-toolbar{align-items:flex-start}.actions{width:100%}.actions .btn{flex:1}.preview-area{padding:16px 13px}.footer{font-size:9px}}
-@media(hover:none){.icon-btn:hover,.btn:hover,.file-card:hover{background:var(--panel);transform:none}}\n@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}\n@media(max-width:520px){.ocr-settings{align-items:flex-start;gap:12px;padding:13px}.ocr-settings>div{flex-basis:100%}.ocr-settings label{flex:1}.ocr-settings select{max-width:145px}}\n\n#ocrDiagnostics{position:fixed;right:12px;bottom:12px;z-index:30;width:min(560px,calc(100vw - 24px));max-height:42vh;background:var(--panel);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow);padding:10px;font:11px var(--mono)}#ocrDiagnostics summary{cursor:pointer;color:var(--accent);font-weight:700}#ocrLog{max-height:26vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);margin:9px 0}#ocrDiagnostics button{font:inherit;padding:6px 9px}
+@media(hover:none){.icon-btn:hover,.btn:hover,.file-card:hover{background:var(--panel);transform:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media(max-width:520px){.ocr-settings{align-items:flex-start;gap:12px;padding:13px}.ocr-settings>div{flex-basis:100%}.ocr-settings label{flex:1}.ocr-settings select{max-width:145px}}
+
+#ocrDiagnostics{position:fixed;right:12px;bottom:12px;z-index:30;width:min(560px,calc(100vw - 24px));max-height:42vh;background:var(--panel);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow);padding:10px;font:11px var(--mono)}#ocrDiagnostics summary{cursor:pointer;color:var(--accent);font-weight:700}#ocrLog{max-height:26vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);margin:9px 0}#ocrDiagnostics button{font:inherit;padding:6px 9px}
 </style>
 </head>
 <body>
@@ -223,15 +227,15 @@ const ocrLogLines=[];
 function ocrLog(message,details){
   const stamp=new Date().toLocaleTimeString("ru-RU");
   const extra=details instanceof Error?(details.stack||details.message):details?JSON.stringify(details):"";
-  const line=`[${stamp}] ${message}${extra?"\\n"+extra:""}`;
+  const line=`[${stamp}] ${message}${extra?"\n"+extra:""}`;
   ocrLogLines.push(line);
   if(ocrLogLines.length>250)ocrLogLines.shift();
   const out=$("#ocrLog");
-  if(out){out.textContent=ocrLogLines.join("\\n");out.scrollTop=out.scrollHeight;}
+  if(out){out.textContent=ocrLogLines.join("\n");out.scrollTop=out.scrollHeight;}
   console.info("[PDF-to-Book OCR]",message,details||"");
 }
 $("#copyOcrLog")?.addEventListener("click",async()=>{
-  try{await navigator.clipboard.writeText(ocrLogLines.join("\\n"));toast("Журнал OCR скопирован")}
+  try{await navigator.clipboard.writeText(ocrLogLines.join("\n"));toast("Журнал OCR скопирован")}
   catch{toast("Не удалось скопировать журнал")}
 });
 let tesseractLoadPromise=null;
