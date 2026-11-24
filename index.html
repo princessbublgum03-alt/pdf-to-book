@@ -128,7 +128,7 @@ h1{font-size:clamp(27px,4vw,42px);line-height:1.08;letter-spacing:-.055em;margin
 .hidden{display:none!important}
 @media(max-width:850px){.app{padding:20px 18px 38px}.workspace{grid-template-columns:1fr}.file-list{max-height:340px}.result-panel{min-height:400px}.preview-area{min-height:400px}.hero{grid-template-columns:1fr}.hero-meta{text-align:left}.stats{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.app{padding:15px 12px 28px}.topbar{margin-bottom:25px}.local-pill{display:none}h1{font-size:29px}.dropzone{min-height:170px;padding:20px 12px}.drop-actions{flex-direction:column}.drop-actions .btn{width:100%}.stats{gap:7px}.stat{padding:11px}.stat-value{font-size:18px}.result-toolbar{align-items:flex-start}.actions{width:100%}.actions .btn{flex:1}.preview-area{padding:16px 13px}.footer{font-size:9px}}
-</style>
+@media(hover:none){.icon-btn:hover,.btn:hover,.file-card:hover{background:var(--panel);transform:none}}\n@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}\n@media(max-width:520px){.ocr-settings{align-items:flex-start;gap:12px;padding:13px}.ocr-settings>div{flex-basis:100%}.ocr-settings label{flex:1}.ocr-settings select{max-width:145px}}\n</style>
 </head>
 <body>
 <div class="app">
@@ -145,11 +145,11 @@ h1{font-size:clamp(27px,4vw,42px);line-height:1.08;letter-spacing:-.055em;margin
 
   <section class="hero">
     <div>
-      <div class="eyebrow">Smart document studio · OCR powered</div>
+      <div class="eyebrow">PDF TO BOOK · LIGHTWEIGHT EDITION</div>
       <h1>Из PDF в Markdown.<br>Локально и структурно.</h1>
-      <p>Быстрая классификация страниц, геометрическое восстановление колонок и таблиц, затем экспорт чистого Markdown. Файлы остаются в вашем браузере. Сканированные страницы автоматически распознаются OCR-движком прямо в браузере.</p>
+      <p>Быстро превращает PDF в аккуратный Markdown. Экономно расходует память, обрабатывает страницы по очереди и распознаёт сканы только при необходимости. Файлы остаются на устройстве.</p>
     </div>
-    <div class="hero-meta">PDF.JS + WASM OCR<br>XY-CUT + SMART EXTRACTION<br>100% LOCAL</div>
+    <div class="hero-meta">LIGHTWEIGHT PDF ENGINE<br>ONE PAGE AT A TIME<br>PRIVATE · ON DEVICE</div>
   </section>
 
   <section class="dropzone" id="dropzone">
@@ -165,7 +165,7 @@ h1{font-size:clamp(27px,4vw,42px);line-height:1.08;letter-spacing:-.055em;margin
     </div>
   </section>
 
-  <section class="ocr-settings panel"><div><b>✦ Умное OCR-распознавание</b><small>Сканированные страницы распознаются локально, без загрузки на сервер</small></div><label><input id="ocrEnabled" type="checkbox" checked> OCR включён</label><label>Язык <select id="ocrLanguage"><option value="rus+eng">Русский + English</option><option value="rus">Русский</option><option value="eng">English</option></select></label></section>
+  <section class="ocr-settings panel"><div><b>✦ Умное OCR-распознавание</b><small>OCR загружается только для сканов · щадящий режим на смартфонах</small></div><label><input id="ocrEnabled" type="checkbox" checked> OCR включён</label><label>Язык <select id="ocrLanguage"><option value="rus+eng">Русский + English</option><option value="rus">Русский</option><option value="eng">English</option></select></label></section>
   <section class="stats">
     <div class="stat"><div class="stat-label">Документы</div><div class="stat-value" id="statDocs">0</div><div class="stat-note">в текущей сессии</div></div>
     <div class="stat"><div class="stat-label">Страницы</div><div class="stat-value" id="statPages">0</div><div class="stat-note">обработано</div></div>
@@ -588,17 +588,18 @@ async function analyzeFile(file,onProgress=()=>{}){
     const page=await pdf.getPage(n),ops=await page.getOperatorList(),content=await page.getTextContent();
     const imageOps=new Set([pdfjsLib.OPS.paintImageXObject,pdfjsLib.OPS.paintImageXObjectRepeat,pdfjsLib.OPS.paintJpegXObject,pdfjsLib.OPS.paintImageMaskXObject].filter(x=>x!==undefined));
     sampleResults.push({page:n,hasText:content.items.some(i=>i.str&&i.str.trim()),hasImage:ops.fnArray.some(op=>imageOps.has(op))});
-    sampleCache.set(n,{content,ops});page.cleanup();
+    sampleCache.set(n,{content});page.cleanup();
   }
   const detection=detectPdfType(sampleResults,total),pages=[],markdownParts=[];
   for(let n=1;n<=total;n++){
     onProgress(10+Math.round(((n-1)/total)*88),`Анализ страницы ${n} из ${total}`);await yieldToUI();
     const page=await pdf.getPage(n),viewport=page.getViewport({scale:1});
     const cached=sampleCache.get(n);
-    const [content,ops]=cached?[cached.content,cached.ops]:await Promise.all([page.getTextContent({includeMarkedContent:true}),page.getOperatorList()]);
+    const content=cached?.content||await page.getTextContent({includeMarkedContent:true});
+    const ops=await page.getOperatorList();
     sampleCache.delete(n);
     let ocrText="";
-    if(ocrEnabled&&!content.items.some(i=>i.str&&i.str.trim())){if(!ocrWorker){onProgress(10+Math.round(((n-1)/total)*88),"Подготовка OCR-движка…");await yieldToUI();const Tesseract=await import("https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.esm.min.js");ocrWorker=await Tesseract.createWorker(ocrLanguage,1,{langPath:"https://tessdata.projectnaptha.com/4.0.0_fast"});}onProgress(10+Math.round(((n-1)/total)*88),`OCR · страница ${n} из ${total}`);const ov=page.getViewport({scale:1.5}),canvas=document.createElement("canvas");canvas.width=Math.ceil(ov.width);canvas.height=Math.ceil(ov.height);const ctx=canvas.getContext("2d",{willReadFrequently:true});await page.render({canvasContext:ctx,viewport:ov}).promise;const result=await ocrWorker.recognize(canvas);ocrText=(result.data.text||"").trim();canvas.width=canvas.height=0;}
+    if(ocrEnabled&&!content.items.some(i=>i.str&&i.str.trim())){if(!ocrWorker){onProgress(10+Math.round(((n-1)/total)*88),"Подготовка OCR-движка…");await yieldToUI();const Tesseract=await import("https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.esm.min.js");ocrWorker=await Tesseract.createWorker(ocrLanguage,1,{langPath:"https://tessdata.projectnaptha.com/4.0.0_fast"});}onProgress(10+Math.round(((n-1)/total)*88),`OCR · страница ${n} из ${total}`);const mobile=window.matchMedia("(max-width: 700px)").matches||(navigator.deviceMemory&&navigator.deviceMemory<=4);const baseViewport=page.getViewport({scale:1}),pixelBudget=mobile?1100000:2000000;const scale=Math.min(mobile?1.15:1.4,Math.sqrt(pixelBudget/(baseViewport.width*baseViewport.height)));const ov=page.getViewport({scale:Math.max(.8,scale)}),canvas=document.createElement("canvas");canvas.width=Math.ceil(ov.width);canvas.height=Math.ceil(ov.height);try{const ctx=canvas.getContext("2d",{alpha:false});if(!ctx)throw new Error("Canvas недоступен");await page.render({canvasContext:ctx,viewport:ov}).promise;const result=await ocrWorker.recognize(canvas);ocrText=(result.data.text||"").trim();}finally{canvas.width=0;canvas.height=0;}}
     const items=textItemsToGeometry(content,viewport),lines=groupLines(items),tableRuns=detectBorderlessRuns(lines);
     const ruled=findRuledTables(ops,viewport);
     let kind=classifyPage(page,content,ops,viewport,lines,tableRuns.length?tableRuns:ruled);
@@ -621,6 +622,7 @@ async function analyzeFile(file,onProgress=()=>{}){
   const book=buildBookStructure(rawMarkdown,{title:metadata.title||file.name.replace(/\.pdf$/i,""),author:metadata.author||""});
   const markdown=book.markdown;
   if(ocrWorker)await ocrWorker.terminate();
+  sampleCache.clear();
   await pdf.destroy();
   return {id:crypto.randomUUID(),name:file.name,size:file.size,pages,elapsed,kind,kindLabel:labels[kind],markdown,detection,counts,tables,headingCount:book.headingCount,title:book.title};
 }
