@@ -615,7 +615,7 @@ async function analyzeFile(file,onProgress=()=>{}){
   const elapsed=performance.now()-start;
   const tables=pages.reduce((s,p)=>s+p.tableCount,0);
   const counts={text:pages.filter(p=>p.kind==="text").length,table:pages.filter(p=>p.kind==="table").length,scan:pages.filter(p=>p.kind==="scan").length};
-  let kind=detection.type==="Scanned"?"scan":detection.type==="Mixed"?"mixed":counts.table?"table":"text";
+  let kind=counts.scan===0?(counts.table?"table":"text"):(counts.text+counts.table)>0?"mixed":"scan";
   const labels={scan:"Скан",mixed:"Смешанный",table:"Таблица",text:"Текст"};
   const rawMarkdown=markdownParts.join("\n\n---\n\n");
   const book=buildBookStructure(rawMarkdown,{title:metadata.title||file.name.replace(/\.pdf$/i,""),author:metadata.author||""});
