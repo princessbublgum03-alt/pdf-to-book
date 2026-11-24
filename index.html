@@ -60,7 +60,7 @@ h1{font-size:clamp(27px,4vw,42px);line-height:1.08;letter-spacing:-.055em;margin
 .drop-sub strong{color:var(--text);font-weight:550}
 .drop-actions{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:16px}
 .file-input{display:none}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0 24px}
+.ocr-settings{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:15px 18px;margin:14px 0;background:linear-gradient(110deg,rgba(139,115,245,.13),transparent 70%),var(--panel)}.ocr-settings b{display:block;font-size:12px}.ocr-settings small{display:block;color:var(--muted);font-size:10px;margin-top:5px}.ocr-settings label{font-size:11px;color:var(--muted)}.ocr-settings select{margin-left:6px;background:var(--panel2);color:var(--text);border:1px solid var(--line2);border-radius:7px;padding:7px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0 24px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px 15px;min-width:0}
 .stat-label{font:10px var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--subtle)}
 .stat-value{font:21px var(--mono);letter-spacing:-.05em;margin-top:8px}
@@ -145,11 +145,11 @@ h1{font-size:clamp(27px,4vw,42px);line-height:1.08;letter-spacing:-.055em;margin
 
   <section class="hero">
     <div>
-      <div class="eyebrow">Spatial extraction system</div>
+      <div class="eyebrow">Smart document studio · OCR powered</div>
       <h1>Из PDF в Markdown.<br>Локально и структурно.</h1>
-      <p>Быстрая классификация страниц, геометрическое восстановление колонок и таблиц, затем экспорт чистого Markdown. Файлы остаются в вашем браузере. Сканированные страницы отмечаются отдельно; встроенный OCR не запускается.</p>
+      <p>Быстрая классификация страниц, геометрическое восстановление колонок и таблиц, затем экспорт чистого Markdown. Файлы остаются в вашем браузере. Сканированные страницы автоматически распознаются OCR-движком прямо в браузере.</p>
     </div>
-    <div class="hero-meta">PDF.JS / CLIENT-SIDE<br>XY-CUT + TEXT GEOMETRY<br>NO SERVER · NO AI</div>
+    <div class="hero-meta">PDF.JS + WASM OCR<br>XY-CUT + SMART EXTRACTION<br>100% LOCAL</div>
   </section>
 
   <section class="dropzone" id="dropzone">
@@ -165,6 +165,7 @@ h1{font-size:clamp(27px,4vw,42px);line-height:1.08;letter-spacing:-.055em;margin
     </div>
   </section>
 
+  <section class="ocr-settings panel"><div><b>✦ Умное OCR-распознавание</b><small>Сканированные страницы распознаются локально, без загрузки на сервер</small></div><label><input id="ocrEnabled" type="checkbox" checked> OCR включён</label><label>Язык <select id="ocrLanguage"><option value="rus+eng">Русский + English</option><option value="rus">Русский</option><option value="eng">English</option></select></label></section>
   <section class="stats">
     <div class="stat"><div class="stat-label">Документы</div><div class="stat-value" id="statDocs">0</div><div class="stat-note">в текущей сессии</div></div>
     <div class="stat"><div class="stat-label">Страницы</div><div class="stat-value" id="statPages">0</div><div class="stat-note">обработано</div></div>
@@ -197,7 +198,7 @@ h1{font-size:clamp(27px,4vw,42px);line-height:1.08;letter-spacing:-.055em;margin
       <div class="progress-wrap hidden" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
       <div class="progress-label hidden" id="progressLabel"></div>
       <div class="preview-area" id="previewArea">
-        <div class="placeholder"><div><div class="big">.md</div>Загрузите PDF, чтобы начать анализ.<br>Структура документа появится здесь.<br>Для сканов без текстового слоя потребуется отдельный OCR.</div></div>
+        <div class="placeholder"><div><div class="big">.md</div>Загрузите PDF, чтобы начать анализ.<br>Структура документа появится здесь.<br>Сканированные страницы будут распознаны автоматически, если OCR включён.</div></div>
       </div>
     </section>
   </main>
@@ -576,7 +577,10 @@ function buildBookStructure(markdown,meta={}){
 }
 
 async function analyzeFile(file,onProgress=()=>{}){
-  const start=performance.now();onProgress(1,`Чтение ${file.name}`);await yieldToUI();const data=new Uint8Array(await file.arrayBuffer());
+  const start=performance.now();
+  const ocrEnabled=$("#ocrEnabled")?.checked!==false;
+  const ocrLanguage=$("#ocrLanguage")?.value||"rus+eng";
+  let ocrWorker=null;onProgress(1,`Чтение ${file.name}`);await yieldToUI();const data=new Uint8Array(await file.arrayBuffer());
   const loading=pdfjsLib.getDocument({data,disableAutoFetch:true,disableStream:true});
   const pdf=await loading.promise,total=pdf.numPages,sample=chooseSample(total,8),sampleResults=[],sampleCache=new Map();
   for(let si=0;si<sample.length;si++){
@@ -593,12 +597,15 @@ async function analyzeFile(file,onProgress=()=>{}){
     const cached=sampleCache.get(n);
     const [content,ops]=cached?[cached.content,cached.ops]:await Promise.all([page.getTextContent({includeMarkedContent:true}),page.getOperatorList()]);
     sampleCache.delete(n);
+    let ocrText="";
+    if(ocrEnabled&&!content.items.some(i=>i.str&&i.str.trim())){if(!ocrWorker){onProgress(10+Math.round(((n-1)/total)*88),"Подготовка OCR-движка…");await yieldToUI();const Tesseract=await import("https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.esm.min.js");ocrWorker=await Tesseract.createWorker(ocrLanguage,1,{langPath:"https://tessdata.projectnaptha.com/4.0.0_fast"});}onProgress(10+Math.round(((n-1)/total)*88),`OCR · страница ${n} из ${total}`);const ov=page.getViewport({scale:1.5}),canvas=document.createElement("canvas");canvas.width=Math.ceil(ov.width);canvas.height=Math.ceil(ov.height);const ctx=canvas.getContext("2d",{willReadFrequently:true});await page.render({canvasContext:ctx,viewport:ov}).promise;const result=await ocrWorker.recognize(canvas);ocrText=(result.data.text||"").trim();canvas.width=canvas.height=0;}
     const items=textItemsToGeometry(content,viewport),lines=groupLines(items),tableRuns=detectBorderlessRuns(lines);
     const ruled=findRuledTables(ops,viewport);
-    const kind=classifyPage(page,content,ops,viewport,lines,tableRuns.length?tableRuns:ruled);
+    let kind=classifyPage(page,content,ops,viewport,lines,tableRuns.length?tableRuns:ruled);
     const ordered=readingOrder(lines);
-    const md=linesToMarkdown(ordered,tableRuns,n);
-    pages.push({number:n,kind:kind.kind,label:kind.label,tableCount:Math.max(tableRuns.length,ruled.length),textCount:content.items.filter(i=>i.str&&i.str.trim()).length,lines:ordered});
+    let md=linesToMarkdown(ordered,tableRuns,n);
+    if(ocrText){kind={kind:"text",label:"OCR"};md=[md,ocrText.split(/\n{2,}/).map(p=>p.trim().split("\n").join(" ")).filter(Boolean).join("\n\n")].filter(Boolean).join("\n\n");}
+    pages.push({number:n,kind:kind.kind,label:kind.label,tableCount:Math.max(tableRuns.length,ruled.length),textCount:content.items.filter(i=>i.str&&i.str.trim()).length+(ocrText?1:0),lines:ordered,ocr:Boolean(ocrText)});
     markdownParts.push(`<!-- PAGE ${n} · ${kind.label.toUpperCase()} -->\n\n${md}`);
     page.cleanup();onProgress(10+Math.round((n/total)*88),`Готово страниц: ${n} из ${total}`);await yieldToUI();
   }
@@ -608,11 +615,12 @@ async function analyzeFile(file,onProgress=()=>{}){
   const elapsed=performance.now()-start;
   const tables=pages.reduce((s,p)=>s+p.tableCount,0);
   const counts={text:pages.filter(p=>p.kind==="text").length,table:pages.filter(p=>p.kind==="table").length,scan:pages.filter(p=>p.kind==="scan").length};
-  let kind=detection.type==="Scanned"?"scan":detection.type==="Mixed"?"mixed":counts.table?"table":"text";
+  let kind=counts.scan===0?(counts.table?"table":"text"):(counts.text+counts.table)>0?"mixed":"scan";
   const labels={scan:"Скан",mixed:"Смешанный",table:"Таблица",text:"Текст"};
   const rawMarkdown=markdownParts.join("\n\n---\n\n");
   const book=buildBookStructure(rawMarkdown,{title:metadata.title||file.name.replace(/\.pdf$/i,""),author:metadata.author||""});
   const markdown=book.markdown;
+  if(ocrWorker)await ocrWorker.terminate();
   await pdf.destroy();
   return {id:crypto.randomUUID(),name:file.name,size:file.size,pages,elapsed,kind,kindLabel:labels[kind],markdown,detection,counts,tables,headingCount:book.headingCount,title:book.title};
 }

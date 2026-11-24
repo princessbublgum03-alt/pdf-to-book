@@ -35,7 +35,8 @@ Extracting clean, readable text from PDFs is difficult because PDFs store positi
 ### Extraction
 
 - **Batch PDF support** — drag and drop or select multiple PDF files at once, with real-time progress tracking and session statistics (documents, pages, processing time, and detected tables).
-- **Automatic page and document classification** — identifies documents and individual pages as *Text*, *Table*, *Scan*, or *Mixed*. Scanned pages without a text layer are clearly flagged rather than silently dropped.
+- **Automatic page and document classification** — identifies documents and individual pages as *Text*, *Table*, *Scan*, or *Mixed*.
+- **Built-in OCR for scanned pages** — recognizes image-only pages in the browser using Tesseract.js 7 and fast language data. Russian and English are supported, with a language selector and an on/off switch.
 - **Multi-column reading order (XY-Cut)** — groups glyph coordinates into lines and segments columns spatially to preserve natural reading flow.
 - **Table extraction** — recognizes both borderless tables (via horizontal whitespace gaps) and ruled tables (via PDF vector paths) and formats them as clean Markdown tables.
 
@@ -53,10 +54,11 @@ Extracting clean, readable text from PDFs is difficult because PDFs store positi
 - **Download clean `.md` files.**
 - **Export styled `.docx` files** — complete with headings, chapter page breaks, formatted tables, code blocks, quotes, lists, headers, and numbered footers.
 - **Light and dark mode** — responsive layout with persistent theme switching.
+- **OCR controls** — enable or disable recognition and choose Russian, English, or both.
 
 ## Limitations
 
-`pdf-to-book` is built for text-based and mixed PDFs. Image-only scanned pages are automatically detected and marked as scans, but built-in OCR is intentionally not included.
+OCR runs locally in the browser and can take longer on high-resolution or large scanned PDFs. Recognition quality depends on scan clarity and selected languages. OCR is applied to pages without an extractable text layer; the original PDF is never uploaded.
 
 ## Links
 
