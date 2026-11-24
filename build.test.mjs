@@ -18,7 +18,7 @@ test('buildStaticSite generates dist/index.html, 404.html, and .nojekyll', async
       fs.readFile(path.join(tempOut, '.nojekyll'), 'utf8'),
     ]);
 
-    assert.match(indexHtml, /PDF → Markdown · Local Parser/);
+    assert.match(indexHtml, /PDF to Book · Lightweight PDF Studio/);
     assert.equal(notFoundHtml, indexHtml);
     assert.equal(noJekyll, '');
   } finally {
@@ -33,4 +33,13 @@ test('GitHub Pages YAML workflow is configured for dist build and deploy', async
   assert.match(yml, /path:\s*\.\/dist/);
   assert.match(yml, /actions\/deploy-pages@v4/);
   assert.match(yml, /pages:\s*write/);
+});
+
+
+test('mobile processing keeps PDF operator lists out of the sample cache and caps OCR raster size', async () => {
+  const html = await fs.readFile(path.join(process.cwd(), 'index.html'), 'utf8');
+  assert.match(html, /sampleCache\.set\(n,\{content\}\)/);
+  assert.match(html, /pixelBudget=mobile\?1100000:2000000/);
+  assert.match(html, /finally\{canvas\.width=0;canvas\.height=0;\}/);
+  assert.match(html, /prefers-reduced-motion:reduce/);
 });
